@@ -1,14 +1,18 @@
 package util;
 
 import java.io.File;
-import java.nio.file.Path;
+import java.io.Serializable;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class CloudSchedule extends Schedule {
+public class CloudSchedule extends Schedule implements Serializable{
 
+	/**
+	 * Serial Version
+	 */
+	private static final long serialVersionUID = 3441018864112509968L;
 	private String name;
 	private List<File> fileList;
 	private Date firstTime;
@@ -17,19 +21,17 @@ public class CloudSchedule extends Schedule {
 	private UUID uniqueId;
 	private int type;
 	private String userId;
-	private CloudConnector connector;
-	
-	public CloudSchedule(String name, Date firstTime,
-			Long period, boolean enabled, int type, String user, CloudConnector connector) {
+
+	public CloudSchedule(String name, List<File> file, Date firstTime,
+			Long period, boolean enabled, UUID uniqueId, int type, String userId) {
 		this.name = name;
-		this.fileList = new LinkedList<File>();
+		this.fileList = file;
 		this.firstTime = firstTime;
 		this.period = period;
 		this.enabled = enabled;
-		this.uniqueId = UUID.randomUUID();
+		this.uniqueId = uniqueId;
 		this.type = type;
-		this.userId = user;
-		this.connector = connector;
+		this.userId = userId;
 	}
 
 	@Override
@@ -46,11 +48,13 @@ public class CloudSchedule extends Schedule {
 	public List<File> getFiles() {
 		return this.fileList;
 	}
-
+	
 	@Override
-	public File getFile(int index) {
-		return fileList.get(index);
+	public void setFiles(List<File> files){
+		fileList.clear();
+		fileList.addAll(files);
 	}
+
 
 	@Override
 	public void addFile(File file) {
@@ -111,25 +115,17 @@ public class CloudSchedule extends Schedule {
 	public UUID getScheduleId() {
 		return uniqueId;
 	}
-
-	public CloudConnector getConnector() {
-		return connector;
-	}
-
-	public void setConnector(CloudConnector connector) {
-		this.connector = connector;
-	}
-
+	
 	@Override
 	public void run() {
-		boolean done;
+		//boolean done;
 		for (File f : fileList) {
 			if (type == REPLACE) {
-				done = performBackUpReplace(f);
+				performBackUpReplace(f);
 			} else if (type == VERSION_CONTROL) {
-				done = performBackUpVersionControl(f);
+				performBackUpVersionControl(f);
 			} else {
-				done = false;
+				//nuffin
 			}
 		}
 	}
@@ -145,7 +141,7 @@ public class CloudSchedule extends Schedule {
 			inFileSize += f.length();
 		}
 		try {
-			return inFileSize < (1e+9 - connector.getCloudSize());
+			return inFileSize < (1e+9 - CloudConnector.getCloudSize());
 		} catch (Exception e) {
 			return false;
 		}
@@ -153,8 +149,8 @@ public class CloudSchedule extends Schedule {
 
 	@Override
 	public boolean performBackUpReplace(File inFile) {
-		try {
-			connector.sendFileToCloud(inFile, userId + "/");
+		try {			
+			CloudConnector.sendFileToCloud(inFile, userId + "/");
 			return true;
 		} catch (Exception e) {
 			return false;
@@ -173,7 +169,7 @@ public class CloudSchedule extends Schedule {
 		String outFilePath = userId + "/" + inFileNameWithoutExtension + inFileVersionString + inFileExtension;
 		
 		try {
-		while(connector.fileExistsInCloud(outFilePath)){
+		while(CloudConnector.fileExistsInCloud(outFilePath)){
 			inFileNameWithoutExtension = inFileName.substring(0,
 					inFileName.indexOf('.'));
 			inFileVersionInteger = 0;
@@ -181,16 +177,19 @@ public class CloudSchedule extends Schedule {
 			inFileExtension = inFile.getName().substring(
 					inFileName.indexOf('.'), inFileName.length());
 			outFilePath = userId + "/" + inFileNameWithoutExtension + inFileVersionString + inFileExtension;
-		}
-		
-		
-			connector.sendFileToCloud(inFile, outFilePath);
+		}		
+			CloudConnector.sendFileToCloud(inFile, outFilePath);
 			return true;
 		} catch (Exception e) {
 			return false;
 		}
 	}
 	
-	
+	/**
+	 * 
+	 */
+	public String toString(){
+		return "<Cloud> " + getName();
+	}
 
 }

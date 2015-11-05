@@ -27,17 +27,17 @@ public class ManageSchedulesPanel extends JPanel {
 	private DefaultListModel<Schedule> listModel;
 	private JList<Schedule> scheduleManageJList;	
 	private JScrollPane scheduleManagerScrollPane;
-	private JButton removeButton, editButton, saveButton;
+	private JButton removeButton, editButton;
 	private JPanel buttonPanel;
-	private ScheduleFormPanel scheduleEditPanel;
-	private ScheduleManager manager;
+	private EditScheduleFormPanel scheduleEditPanel;
+	private ScheduleManager scheduleManager;
 	/**
 	 * Create the panel.
 	 */
 	public ManageSchedulesPanel(int width, int height, ScheduleManager manager) {
 		setSize(width, height);
 		setBackground(SystemColor.activeCaption);
-		this.manager = manager;
+		this.scheduleManager = manager;
 		//Set Layout
 		setLayout(new BorderLayout());
 		
@@ -49,7 +49,7 @@ public class ManageSchedulesPanel extends JPanel {
 		scheduleManageJList = new JList<Schedule>(listModel);
 		scheduleManageJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		scheduleManageJList.setFixedCellWidth(235);
-		displayFileList();
+		displayScheduleList();
 		//Create Scroll pane and add to panel
 		scheduleManagerScrollPane = new JScrollPane(scheduleManageJList);
 		add(scheduleManagerScrollPane, BorderLayout.LINE_START);
@@ -68,9 +68,13 @@ public class ManageSchedulesPanel extends JPanel {
 	            public void actionPerformed(ActionEvent e)
 	            {
 	            	Schedule selectedSchedule = scheduleManageJList.getSelectedValue();
-	            	if (selectedSchedule != null){
-	            		JOptionPane.showMessageDialog(buttonPanel, "Selected " + selectedSchedule);
-	            	}	            	
+	            	int response = JOptionPane.showConfirmDialog(null, "You are about delete this schedule. Are you sure?", "Confirm",
+	    			    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+	    			    if (response == JOptionPane.YES_OPTION){
+	    			    	scheduleManager.removeSchedule(selectedSchedule);
+	    			    	displayScheduleList();
+	    			    	scheduleManager.saveToFile();
+	    			    }          		    			    
 	            }
 	        });   
 		  
@@ -81,12 +85,12 @@ public class ManageSchedulesPanel extends JPanel {
             	Schedule selectedSchedule = scheduleManageJList.getSelectedValue();
             	if (selectedSchedule != null){
             		showScheduleFormPanel();
-                	scheduleEditPanel.setSchedule(selectedSchedule);
+                	scheduleEditPanel.displaySchedule(selectedSchedule);
                 	validate();
             	}	            	
             }
         });  
-		saveButton = new JButton("Save");
+		new JButton("Save");
 		buttonPanel.add(removeButton);
 		buttonPanel.add(editButton);		
 		add(buttonPanel, BorderLayout.PAGE_END);
@@ -95,19 +99,21 @@ public class ManageSchedulesPanel extends JPanel {
 	
 	
 	public void showScheduleFormPanel(){
-		scheduleEditPanel = new ScheduleFormPanel();
+		scheduleEditPanel = new EditScheduleFormPanel(scheduleManager);
 		add(scheduleEditPanel, BorderLayout.LINE_END);
 	}
+	
 	
 	/**
 	 * Displays the elements in JList.
 	 */
-	public void displayFileList(){
+	public void displayScheduleList(){
 		listModel.clear();
-		for(Schedule s: manager.getScheduleList()){
+		for(Schedule s: scheduleManager.getScheduleList()){
 			listModel.addElement(s);
 		}
 		scheduleManageJList.setModel(listModel); 
+		validate();
 	}
 
 }

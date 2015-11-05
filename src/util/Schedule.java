@@ -12,7 +12,7 @@ public abstract class Schedule extends TimerTask{
 	public abstract void setName(String name);
 	public abstract String getName();
 	public abstract List<File> getFiles();
-	public abstract File getFile(int index);
+	public abstract void setFiles(List<File> files);
 	public abstract void addFile(File file);
 	public abstract void removeFile(File file);
 	public abstract void setFirstTime(Date firstTime);

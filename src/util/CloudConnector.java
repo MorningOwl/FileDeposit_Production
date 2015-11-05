@@ -3,9 +3,11 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.jets3t.service.Constants;
@@ -30,39 +32,41 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author Edward
  *
  */
-public class CloudConnector{
-
-	private final String ACCESS_KEY = "GOOGD72WUOK3WMRTDZW2";
-	private final String SECRET_KEY = "rzy903m2rJfy5r4dDGannvH7QB5Vddo9Y0F/lga+";
-	private final String BUCKET = "filedepositcloud-1093.appspot.com";
-	private GSCredentials gsCredentials;
-	private GoogleStorageService gsService;
-	private List<File> cloudList;
+public final class CloudConnector{	
+	/**
+	 * 
+	 */
+	//private static final long serialVersionUID = -3290991630733464172L;
+	private static final String ACCESS_KEY = "GOOGD72WUOK3WMRTDZW2";
+	private static final String SECRET_KEY = "rzy903m2rJfy5r4dDGannvH7QB5Vddo9Y0F/lga+";
+	private static final String BUCKET = "filedepositcloud-1093.appspot.com";
+	private static GSCredentials gsCredentials;
+	private static GoogleStorageService gsService;
+	private static List<File> cloudList =  new ArrayList<File>();;
 	
-	public CloudConnector() throws Exception{
-		cloudList = new ArrayList<File>();
-		connect();
-	}
 	
-	public void connect() throws Exception{
+	private static void connect() throws Exception{
 		gsCredentials = new GSCredentials(ACCESS_KEY, SECRET_KEY);
     	gsService = new GoogleStorageService(gsCredentials);
 	}
 	
-	public void sendFileToCloud(File inFile, String outPath) throws Exception{
+	public static void sendFileToCloud(File inFile, String outPath) throws Exception{
+		connect();
 		GSObject fileObject = new GSObject(inFile);
-		fileObject.setName(outPath);
+		fileObject.setName(outPath + inFile.getName());
 		fileObject.setName(fileObject.getName().replace("\\", "/"));
 		gsService.putObject(BUCKET, fileObject);
 	}
 	
-	public boolean fileExistsInCloud (String inFilePath) throws Exception{
+	public static boolean fileExistsInCloud (String inFilePath) throws Exception{
 		//updateCloudList();
+		connect();
 		return gsService.getBucket(BUCKET).containsMetadata(inFilePath);
 		//return cloudList.contains(inFile);
 	}
 	
-	public int getCloudSize() throws Exception{
+	public static int getCloudSize() throws Exception{
+		connect();
 		int cloudSize = 0;
 		GSObject[] objects = gsService.listObjects(BUCKET);
 		for(int i = 0; i < objects.length; i++){
@@ -71,7 +75,8 @@ public class CloudConnector{
 		return cloudSize;
 	}
 	
-	private void updateCloudList() throws Exception{
+	private static void updateCloudList() throws Exception{
+		connect();
 		GSObject[] objects = gsService.listObjects(BUCKET);
 		cloudList.clear();
 		for(int i = 0; i < objects.length; i++){
@@ -79,4 +84,28 @@ public class CloudConnector{
 		}
 	}
 	
+	public static List<File> getCloudFileNamesByUserName(String userid) throws Exception{
+		connect();
+		List<File> fileList = new LinkedList<File>();
+		updateCloudList();
+		int firsSlashDelimiter = 0;
+		String pathName = "";
+		for(File f: cloudList){
+			fileList.add(f);
+		}
+		return fileList;
+	}
+	
+	public static void downloadFileList(String userid, String output) throws Exception{
+		connect(); 
+		SimpleThreadedStorageService simpleMulti = new SimpleThreadedStorageService(gsService);		
+    	GSObject[] objects = gsService.listObjects(BUCKET);
+    	DownloadPackage[] downloadPackages = new DownloadPackage[objects.length];    	
+    	for(int i = 0; i < objects.length; i++){
+    		downloadPackages[i] = new DownloadPackage(objects[i], new File(output + objects[i].getKey()));
+    	}
+    	simpleMulti.downloadObjects(BUCKET, downloadPackages);
+    	
+    	
+	}
 }
